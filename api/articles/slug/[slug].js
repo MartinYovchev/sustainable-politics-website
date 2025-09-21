@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+const { kv } = require('@vercel/kv');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,7 +9,7 @@ const corsHeaders = {
 const ARTICLES_KEY = 'articles';
 const ARTICLE_PREFIX = 'article:';
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     return res.status(200).json({});
   }

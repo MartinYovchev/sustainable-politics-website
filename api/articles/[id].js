@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+const { kv } = require('@vercel/kv');
 
 // CORS headers
 const corsHeaders = {
@@ -19,7 +19,7 @@ function formatDate(dateString) {
   return `${months[date.getMonth()]} ${date.getFullYear()} г.`;
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     return res.status(200).json({});
   }

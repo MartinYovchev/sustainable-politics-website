@@ -1,5 +1,5 @@
-import { kv } from '@vercel/kv';
-import { nanoid } from 'nanoid';
+const { kv } = require('@vercel/kv');
+const { nanoid } = require('nanoid');
 
 // CORS headers for all responses
 const corsHeaders = {
@@ -40,7 +40,7 @@ function formatDate(dateString) {
   return `${months[date.getMonth()]} ${date.getFullYear()} г.`;
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return res.status(200).json({});
