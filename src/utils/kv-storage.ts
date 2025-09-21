@@ -1,7 +1,21 @@
 import { nanoid } from 'nanoid';
 import type { Article, CreateArticleRequest, UpdateArticleRequest } from '../types';
 
-import { kv } from '@vercel/kv';
+// Client-side fallback for development (KV operations moved to API routes)
+const mockKV = {
+  async get<T>(key: string): Promise<T | null> {
+    const value = localStorage.getItem(`kv:${key}`);
+    return value ? JSON.parse(value) : null;
+  },
+  async set(key: string, value: any): Promise<void> {
+    localStorage.setItem(`kv:${key}`, JSON.stringify(value));
+  },
+  async del(key: string): Promise<void> {
+    localStorage.removeItem(`kv:${key}`);
+  }
+};
+
+const kv = mockKV;
 
 // KV keys
 const ARTICLES_KEY = 'articles';

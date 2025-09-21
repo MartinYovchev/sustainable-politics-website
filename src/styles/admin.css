@@ -270,6 +270,7 @@
   .input-separator {
     padding: 0 var(--spacing-md);
     min-width: 40px;
+    color: black;
   }
 
   .input-separator::before {
