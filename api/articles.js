@@ -1,47 +1,8 @@
-const { kv } = require('@vercel/kv');
-const { nanoid } = require('nanoid');
-
-// CORS headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-};
-
-const ARTICLES_KEY = 'articles';
-const ARTICLE_PREFIX = 'article:';
-
-function generateSlug(title) {
-  return title
-    .toLowerCase()
-    .replace(/[а-я]/g, char => {
-      const map = {
-        'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ж': 'zh', 'з': 'z',
-        'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p',
-        'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch',
-        'ш': 'sh', 'щ': 'sht', 'ъ': 'a', 'ь': 'y', 'ю': 'yu', 'я': 'ya'
-      };
-      return map[char] || char;
-    })
-    .replace(/[^a-z0-9]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '') || 'article';
-}
-
-function formatDate(dateString) {
-  const date = new Date(dateString);
-  const months = [
-    'Януари', 'Февруари', 'Март', 'Април', 'Май', 'Юни',
-    'Юли', 'Август', 'Септември', 'Октомври', 'Ноември', 'Декември'
-  ];
-  return `${months[date.getMonth()]} ${date.getFullYear()} г.`;
-}
-
-module.exports = async function handler(req, res) {
+module.exports = async (req, res) => {
   // Set CORS headers
-  Object.entries(corsHeaders).forEach(([key, value]) => {
-    res.setHeader(key, value);
-  });
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -50,6 +11,34 @@ module.exports = async function handler(req, res) {
 
   try {
     console.log('Articles API called with method:', req.method);
+
+    // Check if KV is available
+    const kvAvailable = !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+
+    if (!kvAvailable) {
+      console.log('KV not available, environment check:', {
+        hasKvUrl: !!process.env.KV_URL,
+        hasKvToken: !!process.env.KV_REST_API_TOKEN,
+        hasKvApiUrl: !!process.env.KV_REST_API_URL
+      });
+
+      return res.status(500).json({
+        success: false,
+        error: 'KV database not configured',
+        debug: {
+          hasKvUrl: !!process.env.KV_URL,
+          hasKvToken: !!process.env.KV_REST_API_TOKEN,
+          hasKvApiUrl: !!process.env.KV_REST_API_URL
+        }
+      });
+    }
+
+    // Dynamically import KV only when available
+    const { kv } = await import('@vercel/kv');
+    const { nanoid } = await import('nanoid');
+
+    const ARTICLES_KEY = 'articles';
+    const ARTICLE_PREFIX = 'article:';
 
     if (req.method === 'GET') {
       console.log('Getting articles from KV...');
@@ -94,7 +83,19 @@ module.exports = async function handler(req, res) {
       }
 
       const id = nanoid();
-      const slug = generateSlug(articleData.title);
+
+      // Simple slug generation
+      const slug = articleData.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '') || 'article';
+
+      // Simple date formatting
+      const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        return `${date.getMonth() + 1}/${date.getFullYear()}`;
+      };
 
       const article = {
         id,
@@ -141,7 +142,7 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({
       success: false,
       error: error.message || 'Internal server error',
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };
