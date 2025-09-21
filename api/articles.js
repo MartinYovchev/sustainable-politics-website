@@ -33,9 +33,9 @@ module.exports = async (req, res) => {
       });
     }
 
-    // Dynamically import KV only when available
-    const { kv } = await import('@vercel/kv');
-    const { nanoid } = await import('nanoid');
+    // Use require for CommonJS compatibility in Vercel
+    const { kv } = require('@vercel/kv');
+    const { nanoid } = require('nanoid');
 
     const ARTICLES_KEY = 'articles';
     const ARTICLE_PREFIX = 'article:';
