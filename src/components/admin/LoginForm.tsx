@@ -43,7 +43,7 @@ const LoginForm: React.FC = () => {
           id="email"
           name="email"
           className="form-input"
-          placeholder="info.sustainable.politics@gmail.com"
+          placeholder="Enter email"
           value={credentials.email}
           onChange={handleChange}
           required

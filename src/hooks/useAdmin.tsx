@@ -71,10 +71,16 @@ export function AdminProvider({ children }: AdminProviderProps) {
       } else {
         // Local validation for development/fallback
         const validCredentials = {
-          email: process.env.VITE_ADMIN_EMAIL,
-          password: process.env.VITE_ADMIN_PASSWORD,
-          keyword: process.env.VITE_ADMIN_KEYWORD
+          email: import.meta.env.VITE_ADMIN_EMAIL || 'info.sustainable.politics@gmail.com',
+          password: import.meta.env.VITE_ADMIN_PASSWORD || 'Cspa2@24',
+          keyword: import.meta.env.VITE_ADMIN_KEYWORD || 'info2024'
         };
+
+        // Debug logging for troubleshooting
+        console.log('Login attempt:', {
+          provided: { email: credentials.email, password: '***', keyword: credentials.keyword },
+          expected: { email: validCredentials.email, password: '***', keyword: validCredentials.keyword }
+        });
 
         if (
           credentials.email === validCredentials.email &&
