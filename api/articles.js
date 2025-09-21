@@ -1,18 +1,16 @@
 const { kv } = require('@vercel/kv');
 const { nanoid } = require('nanoid');
 
-// CORS headers for all responses
+// CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
-// KV keys
 const ARTICLES_KEY = 'articles';
 const ARTICLE_PREFIX = 'article:';
 
-// Generate slug from title
 function generateSlug(title) {
   return title
     .toLowerCase()
@@ -30,7 +28,6 @@ function generateSlug(title) {
     .replace(/^-|-$/g, '') || 'article';
 }
 
-// Format date for display
 function formatDate(dateString) {
   const date = new Date(dateString);
   const months = [
@@ -41,29 +38,43 @@ function formatDate(dateString) {
 }
 
 module.exports = async function handler(req, res) {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return res.status(200).json({});
-  }
-
   // Set CORS headers
   Object.entries(corsHeaders).forEach(([key, value]) => {
     res.setHeader(key, value);
   });
 
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   try {
+    console.log('Articles API called with method:', req.method);
+
     if (req.method === 'GET') {
+      console.log('Getting articles from KV...');
+
       // Get all articles
       const ids = await kv.get(ARTICLES_KEY) || [];
+      console.log('Article IDs:', ids);
+
       const articles = [];
 
       for (const id of ids) {
-        const article = await kv.get(`${ARTICLE_PREFIX}${id}`);
-        if (article) articles.push(article);
+        try {
+          const article = await kv.get(`${ARTICLE_PREFIX}${id}`);
+          if (article) {
+            articles.push(article);
+          }
+        } catch (error) {
+          console.error(`Error getting article ${id}:`, error);
+        }
       }
 
       // Sort by date (newest first)
       articles.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      console.log(`Returning ${articles.length} articles`);
 
       return res.status(200).json({
         success: true,
@@ -72,8 +83,16 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      // Create new article
+      console.log('Creating new article...');
+
       const articleData = req.body;
+      if (!articleData.title || !articleData.content) {
+        return res.status(400).json({
+          success: false,
+          error: 'Title and content are required'
+        });
+      }
+
       const id = nanoid();
       const slug = generateSlug(articleData.title);
 
@@ -82,10 +101,10 @@ module.exports = async function handler(req, res) {
         slug,
         title: articleData.title,
         content: articleData.content,
-        excerpt: articleData.excerpt,
-        date: articleData.date,
-        dateDisplay: formatDate(articleData.date),
-        coverImage: articleData.coverImage,
+        excerpt: articleData.excerpt || '',
+        date: articleData.date || new Date().toISOString().split('T')[0],
+        dateDisplay: formatDate(articleData.date || new Date().toISOString().split('T')[0]),
+        coverImage: articleData.coverImage || '',
         images: articleData.images || [],
         videos: articleData.videos || [],
         category: articleData.category || 'news',
@@ -104,13 +123,14 @@ module.exports = async function handler(req, res) {
       ids.unshift(id);
       await kv.set(ARTICLES_KEY, ids);
 
+      console.log('Article created with ID:', id);
+
       return res.status(201).json({
         success: true,
         data: article
       });
     }
 
-    // Method not allowed
     return res.status(405).json({
       success: false,
       error: 'Method not allowed'
@@ -120,7 +140,8 @@ module.exports = async function handler(req, res) {
     console.error('API Error:', error);
     return res.status(500).json({
       success: false,
-      error: 'Internal server error'
+      error: error.message || 'Internal server error',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
-}
+};
