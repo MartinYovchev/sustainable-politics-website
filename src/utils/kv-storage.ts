@@ -1,31 +1,67 @@
 import { nanoid } from "nanoid";
 import type { Article, CreateArticleRequest, UpdateArticleRequest } from "../types";
 
-// Browser-compatible KV client using fetch API
-class BrowserKVClient {
-  private baseUrl: string;
-  private token: string;
+// Development fallback storage using localStorage
+class LocalStorageKVClient {
+  async get<T>(key: string): Promise<T | null> {
+    try {
+      const value = localStorage.getItem(`kv:${key}`);
+      return value ? JSON.parse(value) : null;
+    } catch (error) {
+      console.error(`Local KV get error for key ${key}:`, error);
+      return null;
+    }
+  }
 
-  constructor(url: string, token: string) {
-    this.baseUrl = url;
-    this.token = token;
+  async set(key: string, value: unknown): Promise<void> {
+    try {
+      localStorage.setItem(`kv:${key}`, JSON.stringify(value));
+    } catch (error) {
+      console.error(`Local KV set error for key ${key}:`, error);
+      throw error;
+    }
+  }
+
+  async del(key: string): Promise<void> {
+    try {
+      localStorage.removeItem(`kv:${key}`);
+    } catch (error) {
+      console.error(`Local KV del error for key ${key}:`, error);
+      throw error;
+    }
+  }
+}
+
+// Production API client for server-side endpoints
+class ServerKVClient {
+  private baseUrl: string;
+
+  constructor() {
+    this.baseUrl = '/api';
   }
 
   async get<T>(key: string): Promise<T | null> {
     try {
-      const response = await fetch(`${this.baseUrl}/get/${encodeURIComponent(key)}`, {
-        headers: {
-          'Authorization': `Bearer ${this.token}`,
-        },
-      });
+      if (key === 'articles') {
+        // Get list of articles
+        const response = await fetch(`${this.baseUrl}/articles`);
+        if (!response.ok) return null;
 
-      if (!response.ok) {
-        if (response.status === 404) return null;
-        throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (data.success && data.data?.articles) {
+          return data.data.articles.map((article: Article) => article.id) as T;
+        }
+        return null;
+      } else if (key.startsWith('article:')) {
+        // Get individual article by ID
+        const articleId = key.replace('article:', '');
+        const response = await fetch(`${this.baseUrl}/articles/${articleId}`);
+        if (!response.ok) return null;
+
+        const data = await response.json();
+        return data.success ? data.data : null;
       }
-
-      const data = await response.json();
-      return data.result;
+      return null;
     } catch (error) {
       console.error(`KV get error for key ${key}:`, error);
       return null;
@@ -34,17 +70,24 @@ class BrowserKVClient {
 
   async set(key: string, value: unknown): Promise<void> {
     try {
-      const response = await fetch(`${this.baseUrl}/set/${encodeURIComponent(key)}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(value),
-      });
+      if (key === 'articles') {
+        // This is handled by the API automatically
+        return;
+      } else if (key.startsWith('article:')) {
+        // Create or update article
+        const article = value as Article;
+        const response = await fetch(`${this.baseUrl}/articles`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(article),
+        });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
       }
     } catch (error) {
       console.error(`KV set error for key ${key}:`, error);
@@ -54,15 +97,16 @@ class BrowserKVClient {
 
   async del(key: string): Promise<void> {
     try {
-      const response = await fetch(`${this.baseUrl}/del/${encodeURIComponent(key)}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.token}`,
-        },
-      });
+      if (key.startsWith('article:')) {
+        const articleId = key.replace('article:', '');
+        const response = await fetch(`${this.baseUrl}/articles/${articleId}`, {
+          method: 'DELETE',
+        });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
       }
     } catch (error) {
       console.error(`KV del error for key ${key}:`, error);
@@ -71,11 +115,11 @@ class BrowserKVClient {
   }
 }
 
-// Create KV client instance
-const kv = new BrowserKVClient(
-  import.meta.env.VITE_KV_REST_API_URL!,
-  import.meta.env.VITE_KV_REST_API_TOKEN!
-);
+// Use localStorage for development, server API for production
+const isDevelopment = import.meta.env.DEV;
+const kv = isDevelopment ? new LocalStorageKVClient() : new ServerKVClient();
+
+console.log('KV Storage Mode:', isDevelopment ? 'Development (localStorage)' : 'Production (Server API)');
 
 const ARTICLES_KEY = "articles";
 const ARTICLE_PREFIX = "article:";
