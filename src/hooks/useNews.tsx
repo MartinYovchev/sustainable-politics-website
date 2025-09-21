@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, type ReactNode } from 'react';
 import type { Article, NewsState, CreateArticleRequest, UpdateArticleRequest } from '../types/index';
-import { apiClient, KVStorageAPI } from '../utils/api';
+import { KVStorageAPI } from '../utils/api';
 import { NewsContext } from '../contexts/NewsContext';
 
 interface NewsProviderProps {
@@ -15,31 +15,12 @@ export function NewsProvider({ children }: NewsProviderProps) {
     selectedArticle: null,
   });
 
-  // Check if we should use API or KV storage
-  const useAPI = import.meta.env.VITE_USE_API === 'true';
-  const useKV = import.meta.env.VITE_USE_KV !== 'false'; // Default to true
-
   const loadArticles = useCallback(async () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      let articles: Article[] = [];
-
-      if (useAPI) {
-        // Try to load from PostgreSQL via API
-        const response = await apiClient.getArticles({ published: true });
-        if (response.success && response.data) {
-          articles = response.data.articles;
-        } else {
-          throw new Error(response.error || 'Failed to load articles from API');
-        }
-      } else if (useKV) {
-        // Use Vercel KV storage
-        articles = await KVStorageAPI.getArticles();
-      } else {
-        // Fallback to localStorage (development only)
-        articles = [];
-      }
+      // Always use KV storage for production consistency
+      const articles = await KVStorageAPI.getArticles();
 
       setState(prev => ({
         ...prev,
@@ -47,33 +28,20 @@ export function NewsProvider({ children }: NewsProviderProps) {
         loading: false,
       }));
     } catch (error) {
-      console.warn('Failed to load articles:', error);
+      console.error('Failed to load articles:', error);
       setState(prev => ({
         ...prev,
         loading: false,
         error: error instanceof Error ? error.message : 'Failed to load articles',
       }));
     }
-  }, [useAPI, useKV]);
+  }, []);
 
   const createArticle = useCallback(async (articleData: CreateArticleRequest): Promise<Article | null> => {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      let newArticle: Article;
-
-      if (useAPI) {
-        const response = await apiClient.createArticle(articleData);
-        if (response.success && response.data) {
-          newArticle = response.data;
-        } else {
-          throw new Error(response.error || 'Failed to create article via API');
-        }
-      } else if (useKV) {
-        newArticle = await KVStorageAPI.createArticle(articleData);
-      } else {
-        throw new Error('No storage method available');
-      }
+      const newArticle = await KVStorageAPI.createArticle(articleData);
 
       setState(prev => ({
         ...prev,
@@ -91,26 +59,13 @@ export function NewsProvider({ children }: NewsProviderProps) {
       }));
       return null;
     }
-  }, [useAPI, useKV]);
+  }, []);
 
   const updateArticle = useCallback(async (updateData: UpdateArticleRequest): Promise<Article | null> => {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      let updatedArticle: Article | null = null;
-
-      if (useAPI) {
-        const response = await apiClient.updateArticle(updateData);
-        if (response.success && response.data) {
-          updatedArticle = response.data;
-        } else {
-          throw new Error(response.error || 'Failed to update article via API');
-        }
-      } else if (useKV) {
-        updatedArticle = await KVStorageAPI.updateArticle(updateData);
-      } else {
-        throw new Error('No storage method available');
-      }
+      const updatedArticle = await KVStorageAPI.updateArticle(updateData);
 
       if (updatedArticle) {
         setState(prev => ({
@@ -124,49 +79,21 @@ export function NewsProvider({ children }: NewsProviderProps) {
 
       return updatedArticle;
     } catch (error) {
-      console.warn('Failed to update via API, falling back to localStorage:', error);
-
-      try {
-        const updatedArticle = await KVStorageAPI.updateArticle(updateData);
-        if (updatedArticle) {
-          setState(prev => ({
-            ...prev,
-            articles: prev.articles.map(article =>
-              article.id === updateData.id ? updatedArticle! : article
-            ),
-            loading: false,
-            error: null,
-          }));
-        }
-        return updatedArticle;
-      } catch (fallbackError) {
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          error: fallbackError instanceof Error ? fallbackError.message : 'Failed to update article',
-        }));
-        return null;
-      }
+      console.error('Failed to update article:', error);
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: error instanceof Error ? error.message : 'Failed to update article',
+      }));
+      return null;
     }
-  }, [useAPI, useKV]);
+  }, []);
 
   const deleteArticle = useCallback(async (id: string): Promise<boolean> => {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      let success = false;
-
-      if (useAPI) {
-        const response = await apiClient.deleteArticle({ id });
-        success = response.success;
-        if (!success) {
-          throw new Error(response.error || 'Failed to delete article via API');
-        }
-      } else if (useKV) {
-        success = await KVStorageAPI.deleteArticle(id);
-      } else {
-        throw new Error('No storage method available');
-      }
+      const success = await KVStorageAPI.deleteArticle(id);
 
       if (success) {
         setState(prev => ({
@@ -178,47 +105,24 @@ export function NewsProvider({ children }: NewsProviderProps) {
 
       return success;
     } catch (error) {
-      console.warn('Failed to delete via API, falling back to localStorage:', error);
-
-      try {
-        const success = await KVStorageAPI.deleteArticle(id);
-        if (success) {
-          setState(prev => ({
-            ...prev,
-            articles: prev.articles.filter(article => article.id !== id),
-            loading: false,
-            error: null,
-          }));
-        }
-        return success;
-      } catch (fallbackError) {
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          error: fallbackError instanceof Error ? fallbackError.message : 'Failed to delete article',
-        }));
-        return false;
-      }
+      console.error('Failed to delete article:', error);
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: error instanceof Error ? error.message : 'Failed to delete article',
+      }));
+      return false;
     }
-  }, [useAPI, useKV]);
+  }, []);
 
   const getArticleBySlug = useCallback(async (slug: string): Promise<Article | null> => {
     try {
-      if (useAPI) {
-        const response = await apiClient.getArticleBySlug(slug);
-        if (response.success && response.data) {
-          return response.data;
-        }
-      }
-
-      // Fallback to local articles
-      const article = state.articles.find(a => a.slug === slug);
-      return article || null;
+      return await KVStorageAPI.getArticleBySlug(slug);
     } catch (error) {
       console.error('Failed to get article by slug:', error);
       return null;
     }
-  }, [useAPI, state.articles]);
+  }, []);
 
   const refreshArticles = useCallback(async () => {
     await loadArticles();

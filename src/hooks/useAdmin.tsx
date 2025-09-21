@@ -17,8 +17,8 @@ export function AdminProvider({ children }: AdminProviderProps) {
   // Check if user is authenticated on mount
   useEffect(() => {
     const checkAuthentication = () => {
-      const token = localStorage.getItem('auth-token');
-      const userStr = localStorage.getItem('admin-user');
+      const token = sessionStorage.getItem('auth-token');
+      const userStr = sessionStorage.getItem('admin-user');
 
       if (token && userStr) {
         try {
@@ -30,8 +30,8 @@ export function AdminProvider({ children }: AdminProviderProps) {
           apiClient.setAuthToken(token);
         } catch (error) {
           console.error('Error parsing stored user data:', error);
-          localStorage.removeItem('auth-token');
-          localStorage.removeItem('admin-user');
+          sessionStorage.removeItem('auth-token');
+          sessionStorage.removeItem('admin-user');
         }
       }
     };
@@ -43,72 +43,39 @@ export function AdminProvider({ children }: AdminProviderProps) {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      // Check if we should use API or local validation
-      const useAPI = import.meta.env.VITE_USE_API === 'true';
+      // Use environment-based validation for production simplicity
+      const validCredentials = {
+        email: import.meta.env.VITE_ADMIN_EMAIL || 'info.sustainable.politics@gmail.com',
+        password: import.meta.env.VITE_ADMIN_PASSWORD || 'Cspa2@24',
+        keyword: import.meta.env.VITE_ADMIN_KEYWORD || 'info2024'
+      };
 
-      if (useAPI) {
-        // Use API for authentication
-        const response = await apiClient.login(credentials);
-
-        if (response.success && response.data) {
-          const { user, token } = response.data;
-
-          setState(prev => ({
-            ...prev,
-            user,
-            loading: false,
-          }));
-
-          // Store authentication data
-          localStorage.setItem('auth-token', token);
-          localStorage.setItem('admin-user', JSON.stringify(user));
-          apiClient.setAuthToken(token);
-
-          return true;
-        } else {
-          throw new Error(response.error || 'Login failed');
-        }
-      } else {
-        // Local validation for development/fallback
-        const validCredentials = {
-          email: import.meta.env.VITE_ADMIN_EMAIL || 'info.sustainable.politics@gmail.com',
-          password: import.meta.env.VITE_ADMIN_PASSWORD || 'Cspa2@24',
-          keyword: import.meta.env.VITE_ADMIN_KEYWORD || 'info2024'
+      if (
+        credentials.email === validCredentials.email &&
+        credentials.password === validCredentials.password &&
+        credentials.keyword === validCredentials.keyword
+      ) {
+        const user: AdminUser = {
+          email: credentials.email,
+          authenticated: true,
         };
 
-        // Debug logging for troubleshooting
-        console.log('Login attempt:', {
-          provided: { email: credentials.email, password: '***', keyword: credentials.keyword },
-          expected: { email: validCredentials.email, password: '***', keyword: validCredentials.keyword }
-        });
+        const token = 'auth-token-' + Date.now();
 
-        if (
-          credentials.email === validCredentials.email &&
-          credentials.password === validCredentials.password &&
-          credentials.keyword === validCredentials.keyword
-        ) {
-          const user: AdminUser = {
-            email: credentials.email,
-            authenticated: true,
-          };
+        setState(prev => ({
+          ...prev,
+          user,
+          loading: false,
+        }));
 
-          const mockToken = 'mock-token-' + Date.now();
+        // Store authentication data in session storage
+        sessionStorage.setItem('auth-token', token);
+        sessionStorage.setItem('admin-user', JSON.stringify(user));
+        apiClient.setAuthToken(token);
 
-          setState(prev => ({
-            ...prev,
-            user,
-            loading: false,
-          }));
-
-          // Store authentication data
-          localStorage.setItem('auth-token', mockToken);
-          localStorage.setItem('admin-user', JSON.stringify(user));
-          apiClient.setAuthToken(mockToken);
-
-          return true;
-        } else {
-          throw new Error('Invalid credentials. Please check email, password, and keyword.');
-        }
+        return true;
+      } else {
+        throw new Error('Invalid credentials. Please check email, password, and keyword.');
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
@@ -124,29 +91,17 @@ export function AdminProvider({ children }: AdminProviderProps) {
   const logout = useCallback(async (): Promise<void> => {
     setState(prev => ({ ...prev, loading: true }));
 
-    try {
-      // Try to call logout API if available
-      const useAPI = import.meta.env.VITE_USE_API === 'true';
+    // Clear local state and storage
+    setState({
+      user: null,
+      loading: false,
+      error: null,
+    });
 
-      if (useAPI && state.user) {
-        await apiClient.logout();
-      }
-    } catch (error) {
-      console.warn('Logout API call failed:', error);
-      // Continue with local logout even if API fails
-    } finally {
-      // Clear local state and storage
-      setState({
-        user: null,
-        loading: false,
-        error: null,
-      });
-
-      localStorage.removeItem('auth-token');
-      localStorage.removeItem('admin-user');
-      apiClient.setAuthToken(null);
-    }
-  }, [state.user]);
+    sessionStorage.removeItem('auth-token');
+    sessionStorage.removeItem('admin-user');
+    apiClient.setAuthToken(null);
+  }, []);
 
   const checkAuth = useCallback((): boolean => {
     return !!state.user?.authenticated;

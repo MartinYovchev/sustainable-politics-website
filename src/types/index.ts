@@ -18,7 +18,7 @@ export interface Article {
   category?: string;
   tags?: string[];
   author?: string;
-  source?: 'local' | 'database';
+  source?: 'local' | 'database' | 'kv';
 }
 
 export interface NewsState {

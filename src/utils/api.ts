@@ -19,7 +19,7 @@ class ApiClient {
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
-    this.authToken = localStorage.getItem('auth-token');
+    this.authToken = sessionStorage.getItem('auth-token');
   }
 
   private async request<T>(
@@ -71,9 +71,9 @@ class ApiClient {
   setAuthToken(token: string | null) {
     this.authToken = token;
     if (token) {
-      localStorage.setItem('auth-token', token);
+      sessionStorage.setItem('auth-token', token);
     } else {
-      localStorage.removeItem('auth-token');
+      sessionStorage.removeItem('auth-token');
     }
   }
 
