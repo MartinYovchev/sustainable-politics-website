@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Save, X, Plus, Image, Video, Calendar, FileText, Quote, Upload } from 'lucide-react';
 import useTranslation from '../../hooks/useTranslationHook';
 import useNews from '../../hooks/useNewsHook';
+import { SupabaseUpload } from '../../utils/supabase-upload';
 import type { CreateArticleRequest } from '../../types/index';
 
 interface ArticleEditorProps {
@@ -83,39 +84,32 @@ const ArticleEditor: React.FC<ArticleEditorProps> = ({
     }));
   };
 
-  // File upload utility functions
-  const fileToDataURL = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
 
   const handleCoverImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      alert('Image file too large (max 5MB)');
+    const validation = SupabaseUpload.validateImage(file);
+    if (!validation.valid) {
+      alert(validation.error);
       return;
     }
 
     try {
-      const dataURL = await fileToDataURL(file);
+      const result = await SupabaseUpload.uploadImage(file);
       setFormData(prev => ({
         ...prev,
-        coverImage: dataURL,
+        coverImage: result.url,
       }));
+      alert('Cover image uploaded successfully!');
     } catch (error) {
       console.error('Error uploading cover image:', error);
       alert('Failed to upload cover image');
+    }
+
+    // Reset file input
+    if (coverImageInputRef.current) {
+      coverImageInputRef.current.value = '';
     }
   };
 
@@ -124,22 +118,19 @@ const ArticleEditor: React.FC<ArticleEditorProps> = ({
     if (files.length === 0) return;
 
     for (const file of files) {
-      if (!file.type.startsWith('image/')) {
-        alert(`${file.name} is not an image file`);
-        continue;
-      }
-
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        alert(`${file.name} is too large (max 5MB)`);
+      const validation = SupabaseUpload.validateImage(file);
+      if (!validation.valid) {
+        alert(`${file.name}: ${validation.error}`);
         continue;
       }
 
       try {
-        const dataURL = await fileToDataURL(file);
+        const result = await SupabaseUpload.uploadImage(file);
         setFormData(prev => ({
           ...prev,
-          images: [...(prev.images || []), dataURL],
+          images: [...(prev.images || []), result.url],
         }));
+        alert(`${file.name} uploaded successfully!`);
       } catch (error) {
         console.error('Error uploading image:', error);
         alert(`Failed to upload ${file.name}`);
@@ -157,22 +148,19 @@ const ArticleEditor: React.FC<ArticleEditorProps> = ({
     if (files.length === 0) return;
 
     for (const file of files) {
-      if (!file.type.startsWith('video/')) {
-        alert(`${file.name} is not a video file`);
-        continue;
-      }
-
-      if (file.size > 50 * 1024 * 1024) { // 50MB limit for videos
-        alert(`${file.name} is too large (max 50MB)`);
+      const validation = SupabaseUpload.validateVideo(file);
+      if (!validation.valid) {
+        alert(`${file.name}: ${validation.error}`);
         continue;
       }
 
       try {
-        const dataURL = await fileToDataURL(file);
+        const result = await SupabaseUpload.uploadVideo(file);
         setFormData(prev => ({
           ...prev,
-          videos: [...(prev.videos || []), dataURL],
+          videos: [...(prev.videos || []), result.url],
         }));
+        alert(`${file.name} uploaded successfully!`);
       } catch (error) {
         console.error('Error uploading video:', error);
         alert(`Failed to upload ${file.name}`);
