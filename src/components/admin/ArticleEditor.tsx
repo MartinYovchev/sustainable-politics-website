@@ -50,7 +50,7 @@ const ArticleEditor: React.FC<ArticleEditorProps> = ({
           title: article.title,
           content: article.content,
           excerpt: article.excerpt,
-          date: article.date,
+          date: article.date.includes('T') ? article.date.split('T')[0] : article.date,
           coverImage: article.coverImage || '',
           images: article.images || [],
           videos: article.videos || [],

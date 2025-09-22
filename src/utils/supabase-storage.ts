@@ -43,7 +43,8 @@ function generateSlug(title: string): string {
 }
 
 function formatDate(dateString: string): string {
-  const date = new Date(dateString)
+  // Handle both "YYYY-MM-DD" and ISO timestamp formats
+  const date = new Date(dateString.includes('T') ? dateString : `${dateString}T00:00:00.000Z`)
   return date.toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
@@ -117,6 +118,8 @@ export class SupabaseStorage {
   }
 
   static async createArticle(data: CreateArticleRequest): Promise<Article> {
+    console.log('Create request data:', data)
+
     const id = nanoid()
     const slug = generateSlug(data.title)
 
@@ -126,7 +129,7 @@ export class SupabaseStorage {
       title: data.title,
       content: data.content,
       excerpt: data.excerpt,
-      date: data.date,
+      date: data.date.includes('T') ? data.date : `${data.date}T00:00:00.000Z`,
       date_display: formatDate(data.date),
       cover_image: data.coverImage || "",
       images: data.images || [],
@@ -137,6 +140,8 @@ export class SupabaseStorage {
       published: true,
       source: "database",
     }
+
+    console.log('Create article data:', article)
 
     const { data: insertedData, error } = await supabase
       .from('articles')
@@ -157,18 +162,30 @@ export class SupabaseStorage {
   }
 
   static async updateArticle(data: UpdateArticleRequest): Promise<Article | null> {
-    const updateData: Partial<DatabaseArticle> = {
-      ...data,
-      slug: data.title ? generateSlug(data.title) : undefined,
-      date_display: data.date ? formatDate(data.date) : undefined,
-    }
+    console.log('Update request data:', data)
 
-    // Remove undefined values
-    Object.keys(updateData).forEach(key => {
-      if (updateData[key as keyof DatabaseArticle] === undefined) {
-        delete updateData[key as keyof DatabaseArticle]
-      }
-    })
+    // Create clean update object with only database column names
+    const updateData: Record<string, any> = {}
+
+    // Map frontend field names to database column names
+    if (data.title !== undefined) {
+      updateData.title = data.title
+      updateData.slug = generateSlug(data.title)
+    }
+    if (data.content !== undefined) updateData.content = data.content
+    if (data.excerpt !== undefined) updateData.excerpt = data.excerpt
+    if (data.date !== undefined) {
+      updateData.date = data.date.includes('T') ? data.date : `${data.date}T00:00:00.000Z`
+      updateData.date_display = formatDate(data.date)
+    }
+    if (data.coverImage !== undefined) updateData.cover_image = data.coverImage
+    if (data.images !== undefined) updateData.images = data.images
+    if (data.videos !== undefined) updateData.videos = data.videos
+    if (data.category !== undefined) updateData.category = data.category
+    if (data.tags !== undefined) updateData.tags = data.tags
+    if (data.featured !== undefined) updateData.featured = data.featured
+
+    console.log('Mapped update data:', updateData)
 
     const { data: updatedData, error } = await supabase
       .from('articles')
@@ -179,6 +196,7 @@ export class SupabaseStorage {
 
     if (error) {
       console.error('Error updating article:', error)
+      console.error('Update data that failed:', JSON.stringify(updateData, null, 2))
       return null
     }
 
