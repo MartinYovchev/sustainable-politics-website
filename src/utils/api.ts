@@ -7,7 +7,7 @@ import type {
   LoginRequest,
   AdminUser,
 } from "../types"
-import { KVStorage } from "../pages/api/kv-storage"
+import { SupabaseStorage } from "./supabase-storage"
 
 // Base API configuration
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "/api" : "http://localhost:3001/api")
@@ -173,48 +173,48 @@ class ApiClient {
 // Create and export the API client instance
 export const apiClient = new ApiClient(API_BASE_URL)
 
-// KV Storage wrapper for simpler API usage
-export class KVStorageAPI {
+// Supabase Storage wrapper for simpler API usage
+export class SupabaseStorageAPI {
   static async getArticles(): Promise<Article[]> {
     try {
-      const articles = await KVStorage.getArticles()
+      const articles = await SupabaseStorage.getArticles()
       if (articles.length === 0) {
-        await KVStorage.initializeDefaultArticle()
-        return await KVStorage.getArticles()
+        await SupabaseStorage.initializeDefaultArticle()
+        return await SupabaseStorage.getArticles()
       }
       return articles
     } catch (error) {
-      console.error("Error loading articles from KV:", error)
+      console.error("Error loading articles from Supabase:", error)
       return []
     }
   }
 
   static async createArticle(article: CreateArticleRequest): Promise<Article> {
-    return await KVStorage.createArticle(article)
+    return await SupabaseStorage.createArticle(article)
   }
 
   static async updateArticle(update: UpdateArticleRequest): Promise<Article | null> {
-    return await KVStorage.updateArticle(update)
+    return await SupabaseStorage.updateArticle(update)
   }
 
   static async deleteArticle(id: string): Promise<boolean> {
-    return await KVStorage.deleteArticle(id)
+    return await SupabaseStorage.deleteArticle(id)
   }
 
   static async getArticleBySlug(slug: string): Promise<Article | null> {
-    return await KVStorage.getArticleBySlug(slug)
+    return await SupabaseStorage.getArticleBySlug(slug)
   }
 
   static async searchArticles(query: string): Promise<Article[]> {
-    return await KVStorage.searchArticles(query)
+    return await SupabaseStorage.searchArticles(query)
   }
 
   static async getFeaturedArticles(): Promise<Article[]> {
-    return await KVStorage.getFeaturedArticles()
+    return await SupabaseStorage.getFeaturedArticles()
   }
 
   static async getRecentArticles(limit?: number): Promise<Article[]> {
-    return await KVStorage.getRecentArticles(limit)
+    return await SupabaseStorage.getRecentArticles(limit)
   }
 }
 

@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, type ReactNode } from 'react';
 import type { Article, NewsState, CreateArticleRequest, UpdateArticleRequest } from '../types/index';
-import { KVStorageAPI } from '../utils/api';
+import { SupabaseStorageAPI } from '../utils/api';
 import { NewsContext } from '../contexts/NewsContext';
 
 interface NewsProviderProps {
@@ -19,8 +19,8 @@ export function NewsProvider({ children }: NewsProviderProps) {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      // Always use KV storage for production consistency
-      const articles = await KVStorageAPI.getArticles();
+      // Always use Supabase storage for production consistency
+      const articles = await SupabaseStorageAPI.getArticles();
 
       setState(prev => ({
         ...prev,
@@ -41,7 +41,7 @@ export function NewsProvider({ children }: NewsProviderProps) {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      const newArticle = await KVStorageAPI.createArticle(articleData);
+      const newArticle = await SupabaseStorageAPI.createArticle(articleData);
 
       setState(prev => ({
         ...prev,
@@ -65,7 +65,7 @@ export function NewsProvider({ children }: NewsProviderProps) {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      const updatedArticle = await KVStorageAPI.updateArticle(updateData);
+      const updatedArticle = await SupabaseStorageAPI.updateArticle(updateData);
 
       if (updatedArticle) {
         setState(prev => ({
@@ -93,7 +93,7 @@ export function NewsProvider({ children }: NewsProviderProps) {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      const success = await KVStorageAPI.deleteArticle(id);
+      const success = await SupabaseStorageAPI.deleteArticle(id);
 
       if (success) {
         setState(prev => ({
@@ -117,7 +117,7 @@ export function NewsProvider({ children }: NewsProviderProps) {
 
   const getArticleBySlug = useCallback(async (slug: string): Promise<Article | null> => {
     try {
-      return await KVStorageAPI.getArticleBySlug(slug);
+      return await SupabaseStorageAPI.getArticleBySlug(slug);
     } catch (error) {
       console.error('Failed to get article by slug:', error);
       return null;
