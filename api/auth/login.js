@@ -25,8 +25,8 @@ module.exports = async function handler(req, res) {
     const { email, password } = req.body;
 
     // Get admin credentials from environment
-    const adminEmail = process.env.VITE_ADMIN_EMAIL;
-    const adminPassword = process.env.VITE_ADMIN_PASSWORD;
+    const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
+    const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD;
 
     if (email === adminEmail && password === adminPassword) {
       return res.status(200).json({
