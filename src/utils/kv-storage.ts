@@ -1,5 +1,6 @@
 import { nanoid } from "nanoid"
 import type { Article, CreateArticleRequest, UpdateArticleRequest } from "../types"
+import { Redis } from '@upstash/redis'
 
 // Production KV client using Vercel KV REST API
 class VercelKVClient {
@@ -94,7 +95,13 @@ class VercelKVClient {
   }
 }
 
-const kv = new VercelKVClient()
+// const kv = new VercelKVClient()
+
+const redis = new Redis({
+  url: import.meta.env.VITE_KV_REST_API_URL || "",
+  token: import.meta.env.VITE_KV_REST_API_TOKEN || "",
+})
+
 
 const ARTICLES_KEY = "articles"
 const ARTICLE_PREFIX = "article:"
@@ -119,7 +126,7 @@ function formatDate(dateString: string): string {
 
 async function getArticleIds(): Promise<string[]> {
   try {
-    const ids = await kv.get<string[]>(ARTICLES_KEY)
+    const ids = await redis.get<string[]>(ARTICLES_KEY)
     return ids || []
   } catch {
     return []
@@ -127,7 +134,7 @@ async function getArticleIds(): Promise<string[]> {
 }
 
 async function saveArticleIds(ids: string[]): Promise<void> {
-  await kv.set(ARTICLES_KEY, ids)
+  await redis.set(ARTICLES_KEY, ids)
 }
 
 // KV Storage API
@@ -137,7 +144,7 @@ export class KVStorage {
     const articles: Article[] = []
 
     for (const id of ids) {
-      const article = await kv.get<Article>(`${ARTICLE_PREFIX}${id}`)
+      const article = await redis.get<Article>(`${ARTICLE_PREFIX}${id}`)
       if (article) articles.push(article)
     }
 
@@ -189,7 +196,7 @@ export class KVStorage {
     }
 
     // Save article in KV
-    await kv.set(`${ARTICLE_PREFIX}${id}`, article)
+    await redis.set(`${ARTICLE_PREFIX}${id}`, article)
 
     // Update article IDs list
     const ids = await getArticleIds()
@@ -200,7 +207,7 @@ export class KVStorage {
   }
 
   static async updateArticle(data: UpdateArticleRequest): Promise<Article | null> {
-    const existing = await kv.get<Article>(`${ARTICLE_PREFIX}${data.id}`)
+    const existing = await redis.get<Article>(`${ARTICLE_PREFIX}${data.id}`)
     if (!existing) return null
 
     const updated: Article = {
@@ -211,12 +218,12 @@ export class KVStorage {
       updatedAt: new Date().toISOString(),
     }
 
-    await kv.set(`${ARTICLE_PREFIX}${data.id}`, updated)
+    await redis.set(`${ARTICLE_PREFIX}${data.id}`, updated)
     return updated
   }
 
   static async deleteArticle(id: string): Promise<boolean> {
-    await kv.del(`${ARTICLE_PREFIX}${id}`)
+    await redis.del(`${ARTICLE_PREFIX}${id}`)
     const ids = await getArticleIds()
     await saveArticleIds(ids.filter((x) => x !== id))
     return true
@@ -225,7 +232,7 @@ export class KVStorage {
   static async getArticleBySlug(slug: string): Promise<Article | null> {
     const ids = await getArticleIds()
     for (const id of ids) {
-      const article = await kv.get<Article>(`${ARTICLE_PREFIX}${id}`)
+      const article = await redis.get<Article>(`${ARTICLE_PREFIX}${id}`)
       if (article && article.slug === slug) {
         return article
       }
@@ -234,7 +241,7 @@ export class KVStorage {
   }
 
   static async getArticleById(id: string): Promise<Article | null> {
-    return await kv.get<Article>(`${ARTICLE_PREFIX}${id}`)
+    return await redis.get<Article>(`${ARTICLE_PREFIX}${id}`)
   }
 
   static async searchArticles(query: string): Promise<Article[]> {
