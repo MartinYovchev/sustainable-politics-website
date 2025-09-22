@@ -99,9 +99,8 @@ import { Redis } from '@upstash/redis'
 
 
 const redis = new Redis({
-  url: "https://evolving-worm-7849.upstash.io",
-  token: "ARjrASQ-MGQ1MWFlYmUtNmZkYi00MWZkLTkzNGMtMzM4NTQ0NThiYzNhQVI2cEFBSW1jREptT1dNNFl6WTFNMk0xT0dZMFlqbGhZV1JqTURVd05Ea3laakZqTVdKak5IQXlOemcwT1E="
-,
+  url: import.meta.env.VITE_KV_REST_API_URL,
+  token: import.meta.env.VITE_KV_REST_API_TOKEN,
 })
 
 
