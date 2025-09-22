@@ -8,8 +8,8 @@ class VercelKVClient {
 
   constructor() {
     // Use environment variables for production
-    this.baseUrl = process.env.KV_REST_API_URL || ""
-    this.token = process.env.KV_REST_API_TOKEN || ""
+    this.baseUrl = import.meta.env.UPSTASH_REDIS_REST_URL || ""
+    this.token = import.meta.env.UPSTASH_REDIS_REST_TOKEN || ""
 
     if (!this.baseUrl || !this.token) {
       console.warn("KV credentials not found, falling back to localStorage")
