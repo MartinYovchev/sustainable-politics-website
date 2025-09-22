@@ -31,10 +31,10 @@ module.exports = async function handler(req, res) {
     await kv.del(testKey);
 
     const envVars = {
-      KV_URL: !!process.env.KV_URL,
-      KV_REST_API_TOKEN: !!process.env.KV_REST_API_TOKEN,
-      KV_REST_API_URL: !!process.env.KV_REST_API_URL,
-      NODE_ENV: process.env.NODE_ENV
+      KV_URL: !!import.meta.env.KV_URL,
+      KV_REST_API_TOKEN: !!import.meta.env.KV_REST_API_TOKEN,
+      KV_REST_API_URL: !!import.meta.env.KV_REST_API_URL,
+      NODE_ENV: import.meta.env.NODE_ENV
     };
 
     return res.status(200).json({
@@ -58,10 +58,10 @@ module.exports = async function handler(req, res) {
         error: error.message
       },
       environment: {
-        KV_URL: !!process.env.KV_URL,
-        KV_REST_API_TOKEN: !!process.env.KV_REST_API_TOKEN,
-        KV_REST_API_URL: !!process.env.KV_REST_API_URL,
-        NODE_ENV: process.env.NODE_ENV
+        KV_URL: !!import.meta.env.KV_URL,
+        KV_REST_API_TOKEN: !!import.meta.env.KV_REST_API_TOKEN,
+        KV_REST_API_URL: !!import.meta.env.KV_REST_API_URL,
+        NODE_ENV: import.meta.env.NODE_ENV
       }
     });
   }

@@ -13,22 +13,22 @@ module.exports = async (req, res) => {
     console.log('Articles API called with method:', req.method);
 
     // Check if KV is available
-    const kvAvailable = !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+    const kvAvailable = !!(import.meta.env.KV_REST_API_URL && import.meta.env.KV_REST_API_TOKEN);
 
     if (!kvAvailable) {
       console.log('KV not available, environment check:', {
-        hasKvUrl: !!process.env.KV_URL,
-        hasKvToken: !!process.env.KV_REST_API_TOKEN,
-        hasKvApiUrl: !!process.env.KV_REST_API_URL
+        hasKvUrl: !!import.meta.env.KV_URL,
+        hasKvToken: !!import.meta.env.KV_REST_API_TOKEN,
+        hasKvApiUrl: !!import.meta.env.KV_REST_API_URL
       });
 
       return res.status(500).json({
         success: false,
         error: 'KV database not configured',
         debug: {
-          hasKvUrl: !!process.env.KV_URL,
-          hasKvToken: !!process.env.KV_REST_API_TOKEN,
-          hasKvApiUrl: !!process.env.KV_REST_API_URL
+          hasKvUrl: !!import.meta.env.KV_URL,
+          hasKvToken: !!import.meta.env.KV_REST_API_TOKEN,
+          hasKvApiUrl: !!import.meta.env.KV_REST_API_URL
         }
       });
     }
@@ -145,7 +145,7 @@ module.exports = async (req, res) => {
     return res.status(500).json({
       success: false,
       error: error.message || 'Internal server error',
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: import.meta.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };

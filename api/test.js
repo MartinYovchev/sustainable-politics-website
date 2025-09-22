@@ -12,10 +12,10 @@ module.exports = (req, res) => {
     timestamp: new Date().toISOString(),
     method: req.method,
     environment: {
-      hasKvUrl: !!process.env.KV_URL,
-      hasKvToken: !!process.env.KV_REST_API_TOKEN,
-      hasKvApiUrl: !!process.env.KV_REST_API_URL,
-      nodeEnv: process.env.NODE_ENV
+      hasKvUrl: !!import.meta.env.KV_URL,
+      hasKvToken: !!import.meta.env.KV_REST_API_TOKEN,
+      hasKvApiUrl: !!import.meta.env.KV_REST_API_URL,
+      nodeEnv: import.meta.env.NODE_ENV
     }
   });
 };
