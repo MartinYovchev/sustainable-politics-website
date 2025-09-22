@@ -33,9 +33,12 @@ module.exports = async (req, res) => {
       });
     }
 
-    // Use require for CommonJS compatibility in Vercel
-    const { kv } = require('@vercel/kv');
+    // Use Upstash Redis SDK as recommended
+    const { Redis } = require('@upstash/redis');
     const { nanoid } = require('nanoid');
+
+    // Initialize Redis with environment variables
+    const redis = Redis.fromEnv();
 
     const ARTICLES_KEY = 'articles';
     const ARTICLE_PREFIX = 'article:';
@@ -44,14 +47,14 @@ module.exports = async (req, res) => {
       console.log('Getting articles from KV...');
 
       // Get all articles
-      const ids = await kv.get(ARTICLES_KEY) || [];
+      const ids = await redis.get(ARTICLES_KEY) || [];
       console.log('Article IDs:', ids);
 
       const articles = [];
 
       for (const id of ids) {
         try {
-          const article = await kv.get(`${ARTICLE_PREFIX}${id}`);
+          const article = await redis.get(`${ARTICLE_PREFIX}${id}`);
           if (article) {
             articles.push(article);
           }
@@ -116,13 +119,13 @@ module.exports = async (req, res) => {
         source: 'database'
       };
 
-      // Save article to KV
-      await kv.set(`${ARTICLE_PREFIX}${id}`, article);
+      // Save article to Redis
+      await redis.set(`${ARTICLE_PREFIX}${id}`, article);
 
       // Update article IDs list
-      const ids = await kv.get(ARTICLES_KEY) || [];
+      const ids = await redis.get(ARTICLES_KEY) || [];
       ids.unshift(id);
-      await kv.set(ARTICLES_KEY, ids);
+      await redis.set(ARTICLES_KEY, ids);
 
       console.log('Article created with ID:', id);
 

@@ -1,4 +1,6 @@
-const { kv } = require('@vercel/kv');
+const { Redis } = require('@upstash/redis');
+
+const redis = Redis.fromEnv();
 
 // CORS headers
 const corsHeaders = {
@@ -33,7 +35,7 @@ module.exports = async function handler(req, res) {
   try {
     if (req.method === 'GET') {
       // Get article by ID
-      const article = await kv.get(`${ARTICLE_PREFIX}${id}`);
+      const article = await redis.get(`${ARTICLE_PREFIX}${id}`);
 
       if (!article) {
         return res.status(404).json({
@@ -51,7 +53,7 @@ module.exports = async function handler(req, res) {
     if (req.method === 'PUT') {
       // Update article
       const updateData = req.body;
-      const existingArticle = await kv.get(`${ARTICLE_PREFIX}${id}`);
+      const existingArticle = await redis.get(`${ARTICLE_PREFIX}${id}`);
 
       if (!existingArticle) {
         return res.status(404).json({
@@ -67,7 +69,7 @@ module.exports = async function handler(req, res) {
         updatedAt: new Date().toISOString()
       };
 
-      await kv.set(`${ARTICLE_PREFIX}${id}`, updatedArticle);
+      await redis.set(`${ARTICLE_PREFIX}${id}`, updatedArticle);
 
       return res.status(200).json({
         success: true,
@@ -77,7 +79,7 @@ module.exports = async function handler(req, res) {
 
     if (req.method === 'DELETE') {
       // Delete article
-      const article = await kv.get(`${ARTICLE_PREFIX}${id}`);
+      const article = await redis.get(`${ARTICLE_PREFIX}${id}`);
 
       if (!article) {
         return res.status(404).json({
@@ -87,12 +89,12 @@ module.exports = async function handler(req, res) {
       }
 
       // Delete article
-      await kv.del(`${ARTICLE_PREFIX}${id}`);
+      await redis.del(`${ARTICLE_PREFIX}${id}`);
 
       // Remove from IDs list
-      const ids = await kv.get(ARTICLES_KEY) || [];
+      const ids = await redis.get(ARTICLES_KEY) || [];
       const filteredIds = ids.filter(articleId => articleId !== id);
-      await kv.set(ARTICLES_KEY, filteredIds);
+      await redis.set(ARTICLES_KEY, filteredIds);
 
       return res.status(200).json({
         success: true,

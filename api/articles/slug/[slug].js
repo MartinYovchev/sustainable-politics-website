@@ -1,4 +1,6 @@
-const { kv } = require('@vercel/kv');
+const { Redis } = require('@upstash/redis');
+
+const redis = Redis.fromEnv();
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -29,10 +31,10 @@ module.exports = async function handler(req, res) {
 
   try {
     // Get all articles and find by slug
-    const ids = await kv.get(ARTICLES_KEY) || [];
+    const ids = await redis.get(ARTICLES_KEY) || [];
 
     for (const id of ids) {
-      const article = await kv.get(`${ARTICLE_PREFIX}${id}`);
+      const article = await redis.get(`${ARTICLE_PREFIX}${id}`);
       if (article && article.slug === slug) {
         return res.status(200).json({
           success: true,
