@@ -5,6 +5,12 @@ import { resolve } from 'path'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+
+  // Define global variables for browser compatibility
+  define: {
+    global: 'globalThis',
+    'process.env': {},
+  },
   
   // Development server configuration
   server: {
