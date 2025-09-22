@@ -3,97 +3,97 @@ import type { Article, CreateArticleRequest, UpdateArticleRequest } from "../typ
 import { Redis } from '@upstash/redis'
 
 // Production KV client using Vercel KV REST API
-class VercelKVClient {
-  private baseUrl: string
-  private token: string
+// class VercelKVClient {
+//   private baseUrl: string
+//   private token: string
 
-  constructor() {
-    // Use environment variables for production
-    this.baseUrl = import.meta.env.VITE_KV_REST_API_URL || ""
-    this.token = import.meta.env.VITE_KV_REST_API_TOKEN || ""
+//   constructor() {
+//     // Use environment variables for production
+//     this.baseUrl = import.meta.env.VITE_KV_REST_API_URL || ""
+//     this.token = import.meta.env.VITE_KV_REST_API_TOKEN || ""
 
-    if (!this.baseUrl || !this.token) {
-      console.warn("KV credentials not found, falling back to localStorage")
-    }
-  }
+//     if (!this.baseUrl || !this.token) {
+//       console.warn("KV credentials not found, falling back to localStorage")
+//     }
+//   }
 
-  async get<T>(key: string): Promise<T | null> {
-    try {
-      if (!this.baseUrl || !this.token) {
-        // Fallback to localStorage for development
-        const value = localStorage.getItem(`kv:${key}`)
-        return value ? JSON.parse(value) : null
-      }
+//   async get<T>(key: string): Promise<T | null> {
+//     try {
+//       if (!this.baseUrl || !this.token) {
+//         // Fallback to localStorage for development
+//         const value = localStorage.getItem(`kv:${key}`)
+//         return value ? JSON.parse(value) : null
+//       }
 
-      const response = await fetch(`${this.baseUrl}/get/${key}`, {
-        headers: {
-          Authorization: `Bearer ${this.token}`,
-        },
-      })
-      console.log('KV GET response:', response)
-      if (!response.ok) {
-        if (response.status === 404) return null
-        throw new Error(`KV GET failed: ${response.status}`)
-      }
+//       const response = await fetch(`${this.baseUrl}/get/${key}`, {
+//         headers: {
+//           Authorization: `Bearer ${this.token}`,
+//         },
+//       })
+//       console.log('KV GET response:', response)
+//       if (!response.ok) {
+//         if (response.status === 404) return null
+//         throw new Error(`KV GET failed: ${response.status}`)
+//       }
 
-      const data = await response.json()
-      return data.result
-    } catch (error) {
-      console.error(`KV get error for key ${key}:`, error)
-      return null
-    }
-  }
+//       const data = await response.json()
+//       return data.result
+//     } catch (error) {
+//       console.error(`KV get error for key ${key}:`, error)
+//       return null
+//     }
+//   }
 
-  async set(key: string, value: unknown): Promise<void> {
-    try {
-      if (!this.baseUrl || !this.token) {
-        // Fallback to localStorage for development
-        localStorage.setItem(`kv:${key}`, JSON.stringify(value))
-        return
-      }
+//   async set(key: string, value: unknown): Promise<void> {
+//     try {
+//       if (!this.baseUrl || !this.token) {
+//         // Fallback to localStorage for development
+//         localStorage.setItem(`kv:${key}`, JSON.stringify(value))
+//         return
+//       }
 
-      const response = await fetch(`${this.baseUrl}/set/${key}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(value),
-      })
+//       const response = await fetch(`${this.baseUrl}/set/${key}`, {
+//         method: "POST",
+//         headers: {
+//           Authorization: `Bearer ${this.token}`,
+//           "Content-Type": "application/json",
+//         },
+//         body: JSON.stringify(value),
+//       })
 
-      if (!response.ok) {
-        throw new Error(`KV SET failed: ${response.status}`)
-      }
-    } catch (error) {
-      console.error(`KV set error for key ${key}:`, error)
-      throw error
-    }
-  }
+//       if (!response.ok) {
+//         throw new Error(`KV SET failed: ${response.status}`)
+//       }
+//     } catch (error) {
+//       console.error(`KV set error for key ${key}:`, error)
+//       throw error
+//     }
+//   }
 
-  async del(key: string): Promise<void> {
-    try {
-      if (!this.baseUrl || !this.token) {
-        // Fallback to localStorage for development
-        localStorage.removeItem(`kv:${key}`)
-        return
-      }
+//   async del(key: string): Promise<void> {
+//     try {
+//       if (!this.baseUrl || !this.token) {
+//         // Fallback to localStorage for development
+//         localStorage.removeItem(`kv:${key}`)
+//         return
+//       }
 
-      const response = await fetch(`${this.baseUrl}/del/${key}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${this.token}`,
-        },
-      })
+//       const response = await fetch(`${this.baseUrl}/del/${key}`, {
+//         method: "DELETE",
+//         headers: {
+//           Authorization: `Bearer ${this.token}`,
+//         },
+//       })
 
-      if (!response.ok) {
-        throw new Error(`KV DEL failed: ${response.status}`)
-      }
-    } catch (error) {
-      console.error(`KV del error for key ${key}:`, error)
-      throw error
-    }
-  }
-}
+//       if (!response.ok) {
+//         throw new Error(`KV DEL failed: ${response.status}`)
+//       }
+//     } catch (error) {
+//       console.error(`KV del error for key ${key}:`, error)
+//       throw error
+//     }
+//   }
+// }
 
 // const kv = new VercelKVClient()
 
