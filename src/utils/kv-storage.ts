@@ -11,11 +11,6 @@ class VercelKVClient {
     this.baseUrl = import.meta.env.VITE_KV_REST_API_URL || process.env.VITE_KV_REST_API_URL || ""
     this.token = import.meta.env.VITE_KV_REST_API_TOKEN || process.env.VITE_KV_REST_API_TOKEN || ""
 
-    console.log('KV Config:', {
-      url: import.meta.env.VITE_KV_REST_API_URL ? 'Set' : 'Missing',
-      token: import.meta.env.VITE_KV_REST_API_TOKEN ? 'Set' : 'Missing',
-    });
-
     if (!this.baseUrl || !this.token) {
       console.warn("KV credentials not found, falling back to localStorage")
     }
@@ -34,7 +29,7 @@ class VercelKVClient {
           Authorization: `Bearer ${this.token}`,
         },
       })
-
+      console.log('KV GET response:', response)
       if (!response.ok) {
         if (response.status === 404) return null
         throw new Error(`KV GET failed: ${response.status}`)
