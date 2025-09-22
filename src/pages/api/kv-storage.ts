@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid"
-import type { Article, CreateArticleRequest, UpdateArticleRequest } from "../types"
+import type { Article, CreateArticleRequest, UpdateArticleRequest } from "../../types"
 import { Redis } from '@upstash/redis'
 
 // Production KV client using Vercel KV REST API
