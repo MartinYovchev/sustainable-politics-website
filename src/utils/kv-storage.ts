@@ -8,8 +8,13 @@ class VercelKVClient {
 
   constructor() {
     // Use environment variables for production
-    this.baseUrl = process.env.KV_REST_API_URL || process.env.VITE_KV_REST_API_URL || ""
-    this.token = process.env.KV_REST_API_TOKEN || process.env.VITE_KV_REST_API_TOKEN || ""
+    this.baseUrl = import.meta.env.VITE_KV_REST_API_URL || process.env.VITE_KV_REST_API_URL || ""
+    this.token = import.meta.env.VITE_KV_REST_API_TOKEN || process.env.VITE_KV_REST_API_TOKEN || ""
+
+    console.log('KV Config:', {
+      url: import.meta.env.VITE_KV_REST_API_URL ? 'Set' : 'Missing',
+      token: import.meta.env.VITE_KV_REST_API_TOKEN ? 'Set' : 'Missing',
+    });
 
     if (!this.baseUrl || !this.token) {
       console.warn("KV credentials not found, falling back to localStorage")
