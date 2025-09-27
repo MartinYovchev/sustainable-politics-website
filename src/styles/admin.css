@@ -304,6 +304,7 @@
 
 .input-separator span,
 .input-separator {
+  color: black;
   background: white;
   padding: 0 var(--spacing-sm);
   z-index: 2;
