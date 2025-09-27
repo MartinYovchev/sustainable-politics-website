@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import useTranslation from '../hooks/useTranslationHook';
 import ContactOverlay from './ContactOverlay';
 
@@ -10,6 +10,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ variant = 'landing' }) => {
   const { t, language, changeLanguage } = useTranslation();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [isAlt, setIsAlt] = useState(variant === 'landing');
@@ -50,14 +51,27 @@ const Header: React.FC<HeaderProps> = ({ variant = 'landing' }) => {
   };
 
   const handleNavClick = (item: typeof navigationItems[0]) => {
-    if (item.section && location.pathname === '/') {
-      // Smooth scroll to section on homepage
-      const element = document.getElementById(item.section);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
+    setIsMenuOpen(false);
+    
+    if (item.section) {
+      if (location.pathname === '/') {
+        // Smooth scroll to section on homepage
+        const element = document.getElementById(item.section);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      } else {
+        // Navigate to homepage first, then scroll to section after navigation
+        navigate('/');
+        // Use timeout to ensure navigation completes before scrolling
+        setTimeout(() => {
+          const element = document.getElementById(item.section);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 100);
       }
     }
-    setIsMenuOpen(false);
   };
 
   return (
@@ -105,9 +119,12 @@ const Header: React.FC<HeaderProps> = ({ variant = 'landing' }) => {
                     <li key={item.key}>
                       {item.href === '/' && item.section ? (
                         <a
-                          href="javascript:void(0)"
+                          href="#"
                           data-section={item.section}
-                          onClick={() => handleNavClick(item)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleNavClick(item);
+                          }}
                         >
                           {item.label}
                         </a>
